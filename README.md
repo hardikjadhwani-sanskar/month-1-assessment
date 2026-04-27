@@ -1,6 +1,6 @@
 ### Employee Hub
 
-custom app for employees functionality
+app for employee functionality
 
 ### Installation
 

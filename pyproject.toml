@@ -3,7 +3,7 @@ name = "employee_hub"
 authors = [
     { name = "hardik", email = "hardik.jadhwani@sanskartechnolab.com"}
 ]
-description = "custom app for employees functionality"
+description = "app for employee functionality"
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]

@@ -1,7 +1,7 @@
 app_name = "employee_hub"
 app_title = "Employee Hub"
 app_publisher = "hardik"
-app_description = "custom app for employees functionality"
+app_description = "app for employee functionality"
 app_email = "hardik.jadhwani@sanskartechnolab.com"
 app_license = "mit"
 
