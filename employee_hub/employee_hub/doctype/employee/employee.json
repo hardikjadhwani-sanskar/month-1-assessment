@@ -33,27 +33,25 @@
   {
    "fieldname": "first_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "First Name",
    "reqd": 1
   },
   {
    "fieldname": "last_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Last Name",
    "reqd": 1
   },
   {
    "fieldname": "full_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Full Name",
    "read_only": 1
   },
   {
    "fieldname": "employee_email",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Employee Email",
    "reqd": 1,
    "unique": 1
@@ -67,19 +65,20 @@
   {
    "fieldname": "date_of_birth",
    "fieldtype": "Date",
-   "in_list_view": 1,
    "label": "Date of Birth",
    "reqd": 1
   },
   {
    "fieldname": "date_of_joining",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Date of Joining",
    "reqd": 1
   },
   {
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Department",
    "options": "Department",
    "reqd": 1
@@ -87,6 +86,7 @@
   {
    "fieldname": "designation",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Designation",
    "options": "Designation",
    "reqd": 1
@@ -101,6 +101,7 @@
    "default": "Active",
    "fieldname": "employee_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nOn Leave\nTerminated",
    "read_only": 1
@@ -132,7 +133,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-27 15:37:26.280022",
+ "modified": "2026-04-27 20:19:03.956647",
  "modified_by": "Administrator",
  "module": "Employee Hub",
  "name": "Employee",

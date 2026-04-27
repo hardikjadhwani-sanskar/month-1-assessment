@@ -10,7 +10,7 @@
   "naming_series",
   "amended_from",
   "employee",
-  "exployee_name",
+  "employee_name",
   "department",
   "from_date",
   "to_date",
@@ -44,13 +44,6 @@
    "label": "Employee",
    "options": "Employee",
    "reqd": 1
-  },
-  {
-   "fetch_from": "employee.full_name",
-   "fieldname": "exployee_name",
-   "fieldtype": "Data",
-   "label": "Employee Name",
-   "read_only": 1
   },
   {
    "fetch_from": "employee.department",
@@ -121,17 +114,25 @@
    "label": "Rejected Reason"
   },
   {
+   "default": "LR-.YYYY.-.#####",
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "label": "Naming Series",
    "options": "LR-.YYYY.-.#####"
+  },
+  {
+   "fetch_from": "employee.full_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-27 17:27:05.767244",
+ "modified": "2026-04-27 20:07:56.980776",
  "modified_by": "Administrator",
  "module": "Employee Hub",
  "name": "Leave Request",
