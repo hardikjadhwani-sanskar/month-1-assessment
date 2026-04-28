@@ -256,7 +256,7 @@ Adjust as per your company policy and Save.
 | leave_type      | Select    | Casual / Sick / Earned / Compensatory Leave             |
 | reason          | Text      | Mandatory                                               |
 | approval_status | Select    | Pending / Approved / Rejected / Cancelled (workflow)    |
-| approved_by     | Link      | Read-only → Employee, auto-set on approval              |
+| approved_by     | Link      | Read-only → User, auto-set on approval              |
 | approval_date   | Datetime  | Read-only, auto-set on approval                         |
 | rejection_reason| Small Text| Required when HR Admin rejects                          |
 
@@ -280,7 +280,7 @@ Adjust as per your company policy and Save.
 
 ## Roles and Permissions
 
-### HR Admin
+### HR Admin 
 
 | DocType             | Read | Write | Create | Delete | Submit | Cancel |
 |---------------------|------|-------|--------|--------|--------|--------|
