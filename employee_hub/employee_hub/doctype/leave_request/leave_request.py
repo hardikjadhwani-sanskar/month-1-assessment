@@ -11,9 +11,11 @@ class LeaveRequest(Document):
     # ─────────────────────────────────────────────
     # VALIDATE
     # ─────────────────────────────────────────────
+    
     def validate(self):
         self._calculate_total_days()
         self._validate_date_range()
+        
         self._validate_from_date_not_past()
         self._validate_total_days_limit()
         self._validate_leave_type_limit()
@@ -87,31 +89,20 @@ class LeaveRequest(Document):
             )
 
     def _check_overlapping_leaves(self):
-        """
-        Block if this employee already has an Approved or Pending
-        submitted leave request whose date range overlaps with this one.
-        Both Approved and Pending are checked to prevent double-booking
-        before HR Admin even approves.
-        """
         if not self.employee or not self.from_date or not self.to_date:
             return
 
         overlapping = frappe.db.sql(
             """
-            SELECT
-                name,
-                from_date,
-                to_date,
-                approval_status
-            FROM
-                `tabLeave Request`
+            SELECT name, from_date, to_date, approval_status
+            FROM `tabLeave Request`
             WHERE
-                employee        = %(employee)s
-                AND docstatus   = 1
+                employee = %(employee)s
+                AND docstatus IN (0, 1)
                 AND approval_status IN ('Approved', 'Pending')
-                AND name       != %(name)s
+                AND name != %(name)s
                 AND NOT (
-                    to_date   < %(from_date)s
+                    to_date < %(from_date)s
                     OR from_date > %(to_date)s
                 )
             """,
@@ -125,44 +116,41 @@ class LeaveRequest(Document):
         )
 
         if overlapping:
-            lines = []
-            for r in overlapping:
-                lines.append(
-                    f"• {r.name} ({r.approval_status}): "
-                    f"{frappe.utils.formatdate(r.from_date)} "
-                    f"to {frappe.utils.formatdate(r.to_date)}"
-                )
+            lines = [
+                f"• {r.name} ({r.approval_status}): "
+                f"{frappe.utils.formatdate(r.from_date)} "
+                f"to {frappe.utils.formatdate(r.to_date)}"
+                for r in overlapping
+            ]
             frappe.throw(
                 "Leave dates overlap with the following existing "
-                "leave request(s) for this employee:\n\n"
-                + "\n".join(lines)
+                "leave request(s):\n\n" + "\n".join(lines)
             )
 
     # ─────────────────────────────────────────────
     # ON SUBMIT
+    # Fires when HR Admin clicks Approve or reject
+    # 
     # ─────────────────────────────────────────────
     def on_submit(self):
-        # Document submitted by Employee.
-        # approval_status stays Pending.
-        # Workflow engine takes over from here.
-        self.db_set("approval_status", "Pending")
+        frappe.logger().info(
+            f"on_submit fired | "
+            f"doc={self.name} | "
+            f"approval_status={self.approval_status} | "
+            f"user={frappe.session.user}"
+        )
 
-    # ─────────────────────────────────────────────
-    # BEFORE WORKFLOW ACTION
-    # Fires when HR Admin clicks Approve / Reject / Cancel
-    # ─────────────────────────────────────────────
-    def before_workflow_action(self, action):
-        if action == "Approve":
-            self._handle_approve()
-        elif action == "Reject":
-            self._handle_reject()
-        elif action == "Cancel":
-            self._handle_cancel()
+        # Only process if this is an approval
+        # (approval_status will be Approved at this point
+        # because workflow sets it before on_submit fires)
+        if self.approval_status != "Approved":
+            frappe.logger().info(
+                f"on_submit: status is {self.approval_status} "
+                f"not Approved — skipping balance deduction"
+            )
+            return
 
-    def _handle_approve(self):
-        self._assert_hr_admin()
-
-        # Resolve HR Admin's Employee record from session email
+        # Resolve approver Employee record from session
         approved_by_employee = frappe.db.get_value(
             "Employee",
             {"employee_email": frappe.session.user},
@@ -170,14 +158,12 @@ class LeaveRequest(Document):
         )
         if not approved_by_employee:
             frappe.throw(
-                f"No Employee record found for the logged-in user "
-                f"({frappe.session.user}). "
+                f"No Employee record found for ({frappe.session.user}). "
                 f"The approver must have an Employee record "
                 f"with a matching employee_email."
             )
 
         # Re-validate balance at point of approval
-        # (balance may have changed since submission)
         balance = frappe.db.get_value(
             "Employee", self.employee, "annual_leave_balance"
         )
@@ -189,10 +175,7 @@ class LeaveRequest(Document):
                 f"Requested: {self.total_days} day(s)."
             )
 
-        # Re-check overlaps at point of approval
-        self._check_overlapping_leaves()
-
-        # Persist approval metadata
+        # Set approval metadata
         self.db_set("approved_by",   approved_by_employee)
         self.db_set("approval_date", now_datetime())
 
@@ -206,38 +189,27 @@ class LeaveRequest(Document):
             indicator="green"
         )
 
-    def _handle_reject(self):
-        self._assert_hr_admin()
-
-        # rejection_reason is mandatory — HR Admin must fill it
-        # on the form before clicking Reject
-        if not self.rejection_reason or not self.rejection_reason.strip():
-            frappe.throw(
-                "Rejection Reason is mandatory. "
-                "Please fill in the Rejection Reason field "
-                "before rejecting this leave request."
-            )
-
-        frappe.msgprint(
-            f"Leave request rejected for {self.employee_name}.",
-            alert=True,
-            indicator="red"
+    # ─────────────────────────────────────────────
+    # ON CANCEL
+    # Fires when HR Admin clicks Cancel
+    # because Cancel moves docstatus 1 → 2
+    # ─────────────────────────────────────────────
+    def on_cancel(self):
+        frappe.logger().info(
+            f"on_cancel fired | "
+            f"doc={self.name} | "
+            f"user={frappe.session.user}"
         )
 
-    def _handle_cancel(self):
-        self._assert_hr_admin()
-
-        # Fetch the approval_status that is currently saved in DB
-        # (self.approval_status may already reflect the new state)
-        current_status = frappe.db.get_value(
-            "Leave Request", self.name, "approval_status"
+        # Restore balance only if it was approved
+        was_approved = frappe.db.get_value(
+            "Leave Request", self.name, "approved_by"
         )
 
-        # Only restore balance if the leave was approved
-        if current_status == "Approved":
+        if was_approved:
             self._adjust_leave_balance(multiplier=1)
 
-            # Restore employee_status if they were marked On Leave
+            # Restore employee status if On Leave
             current_emp_status = frappe.db.get_value(
                 "Employee", self.employee, "employee_status"
             )
@@ -248,62 +220,78 @@ class LeaveRequest(Document):
                     "employee_status",
                     "Active"
                 )
+                frappe.db.commit()
 
-        frappe.msgprint(
-            f"Leave request cancelled for {self.employee_name}.",
-            alert=True,
-            indicator="orange"
-        )
-
-    # ─────────────────────────────────────────────
-    # ON CANCEL (fallback — outside workflow)
-    # ─────────────────────────────────────────────
-    def on_cancel(self):
-        current_status = frappe.db.get_value(
-            "Leave Request", self.name, "approval_status"
-        )
-        if current_status == "Approved":
-            self._adjust_leave_balance(multiplier=1)
-
-        current_emp_status = frappe.db.get_value(
-            "Employee", self.employee, "employee_status"
-        )
-        if current_emp_status == "On Leave":
-            frappe.db.set_value(
-                "Employee", self.employee, "employee_status", "Active"
+            frappe.msgprint(
+                f"Leave cancelled. {self.total_days} day(s) restored "
+                f"to {self.employee_name}'s balance.",
+                alert=True,
+                indicator="orange"
             )
 
     # ─────────────────────────────────────────────
-    # SHARED HELPERS
+    # SHARED HELPER
     # ─────────────────────────────────────────────
-    def _assert_hr_admin(self):
-        if "HR Admin" not in frappe.get_roles(frappe.session.user):
-            frappe.throw(
-                "Only HR Admins can perform this action.",
-                frappe.PermissionError
-            )
-
     def _adjust_leave_balance(self, multiplier: int):
         """
         multiplier = -1  →  deduct  (on approve)
         multiplier = +1  →  restore (on cancel)
         """
         if not self.employee or not self.total_days:
+            frappe.logger().info(
+                "adjust_leave_balance: skipped — "
+                "missing employee or total_days"
+            )
             return
 
-        current_balance = frappe.db.get_value(
-            "Employee", self.employee, "annual_leave_balance"
+        # Read current balance via raw SQL
+        result = frappe.db.sql(
+            """
+            SELECT annual_leave_balance
+            FROM `tabEmployee`
+            WHERE name = %s
+            """,
+            (self.employee,),
+            as_dict=True
         )
-        if current_balance is None:
+
+        if not result:
             frappe.throw(
-                f"Could not update leave balance for "
-                f"employee {self.employee}."
+                f"Employee {self.employee} not found in database."
             )
 
-        new_balance = current_balance + (multiplier * self.total_days)
-        frappe.db.set_value(
-            "Employee",
-            self.employee,
-            "annual_leave_balance",
-            new_balance
+        current_balance = result[0]["annual_leave_balance"] or 0
+        new_balance     = current_balance + (multiplier * self.total_days)
+
+        frappe.logger().info(
+            f"adjust_leave_balance | "
+            f"employee={self.employee} | "
+            f"current={current_balance} | "
+            f"multiplier={multiplier} | "
+            f"days={self.total_days} | "
+            f"new={new_balance}"
+        )
+
+        if new_balance < 0:
+            frappe.throw(
+                f"Leave balance cannot go below 0. "
+                f"Current: {current_balance}, "
+                f"Deduction: {self.total_days}."
+            )
+
+        # Write new balance via raw SQL
+        frappe.db.sql(
+            """
+            UPDATE `tabEmployee`
+            SET annual_leave_balance = %s
+            WHERE name = %s
+            """,
+            (new_balance, self.employee)
+        )
+        frappe.db.commit()
+
+        frappe.logger().info(
+            f"Balance updated | "
+            f"employee={self.employee} | "
+            f"{current_balance} → {new_balance}"
         )

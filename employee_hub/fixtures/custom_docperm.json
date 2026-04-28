@@ -52,7 +52,7 @@
   "write": 0
  },
  {
-  "amend": 0,
+  "amend": 1,
   "cancel": 1,
   "create": 1,
   "delete": 1,
@@ -64,7 +64,7 @@
   "impersonate": 0,
   "import": 0,
   "mask": 0,
-  "modified": "2026-04-28 11:20:38.785853",
+  "modified": "2026-04-28 13:58:39.418510",
   "name": "qcd3ouq4au",
   "parent": "Leave Request",
   "permlevel": 0,
@@ -75,7 +75,7 @@
   "select": 0,
   "share": 0,
   "submit": 1,
-  "write": 0
+  "write": 1
  },
  {
   "amend": 0,
@@ -90,7 +90,7 @@
   "impersonate": 0,
   "import": 0,
   "mask": 0,
-  "modified": "2026-04-28 11:21:37.679238",
+  "modified": "2026-04-28 13:58:50.116672",
   "name": "qshl5melpl",
   "parent": "Leave Request",
   "permlevel": 0,
@@ -286,8 +286,8 @@
   "write": 1
  },
  {
-  "amend": 0,
-  "cancel": 0,
+  "amend": 1,
+  "cancel": 1,
   "create": 1,
   "delete": 1,
   "docstatus": 0,
@@ -298,7 +298,7 @@
   "impersonate": 0,
   "import": 0,
   "mask": 0,
-  "modified": "2026-04-28 11:20:06.052835",
+  "modified": "2026-04-28 17:36:40.097732",
   "name": "qccrpfs3t6",
   "parent": "Leave Request",
   "permlevel": 0,

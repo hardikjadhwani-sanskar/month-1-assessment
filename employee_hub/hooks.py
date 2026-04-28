@@ -8,20 +8,19 @@ app_license = "mit"
 # ─────────────────────────────────────────────
 # DOC EVENTS
 # ─────────────────────────────────────────────
-doc_events = {
-    "Employee": {
-        "before_save": (
-            "employee_hub.employee_hub.doctype"
-            ".employee.employee.before_save"
-        ),
-    },
-    "Leave Request": {
-        "before_workflow_action": (
-            "employee_hub.employee_hub.doctype"
-            ".leave_request.leave_request.before_workflow_action"
-        ),
-    },
-}
+# doc_events = {
+#     # "Employee": {
+#     #     "before_save": (
+#     #         "employee_hub.employee_hub.doctype"
+#     #         ".employee.employee.before_save"
+#     #     ),
+#     # },
+#     "Leave Request": {
+#         "before_workflow_action": (
+#             "employee_hub.employee_hub.doctype.leave_request.leave_request.before_workflow_action"
+#         ),
+#     },
+# }
 
 # ─────────────────────────────────────────────
 # PERMISSION QUERY CONDITIONS

@@ -6,6 +6,25 @@ frappe.ui.form.on("Leave Request", {
             _set_employee_from_session(frm);
         }
     },
+    // on approval status change check if rejected status is selected, then open rejection reason field
+    
+    approval_status(frm) {
+        if (frm.doc.approval_status === "Rejected") {
+            frm.set_value("rejection_reason", "");
+            frm.toggle_display("rejection_reason", true);
+            frm.set_df_property(
+                "rejection_reason",
+                "description",
+                "⚠ Please fill the reason for rejection."
+            );
+            frm.set_df_property("rejection_reason", "bold", 1);
+        } else {
+            frm.toggle_display("rejection_reason", false);
+            frm.set_df_property("rejection_reason", "description", "");
+            frm.set_df_property("rejection_reason", "bold", 0);
+        }
+    },
+    
 
     refresh(frm) {
         _setReadOnlyFields(frm);

@@ -43,7 +43,7 @@ HR module.
 | Layer        | Technology                        |
 |--------------|-----------------------------------|
 | Framework    | Frappe v16                  |
-| Backend      | Python 3.14+  | Node 24+                    |
+| Backend      | Python 3.14+ , Node 24+                    |
 | Frontend     | Frappe JS (client scripts)        |
 | Database     | MariaDB 10.6+                     |
 | Templating   | Jinja2 (print formats)            |
@@ -134,7 +134,7 @@ Roles         :
   ├── HR Admin
   └── Employee
 
-Save → user receives a welcome email with a set-password link
+
 ```
 
 ### Step 2 — Create Employee Record for HR Admin
@@ -295,7 +295,7 @@ Adjust as per your company policy and Save.
 
 | DocType       | Read     | Write    | Create   | Delete | Submit   | If Owner |
 |---------------|----------|----------|----------|--------|----------|----------|
-| Employee      | ✓        | —        | —        | —      | —        | ✓        |
+| Employee      | ✓        | —        | —        | —      | —        | -        |
 | Leave Request | ✓        | ✓        | ✓        | —      | ✓        | ✓        |
 | Department    | ✓        | —        | —        | —      | —        | —        |
 | Designation   | ✓        | —        | —        | —      | —        | —        |
@@ -312,53 +312,12 @@ Applied on: **Leave Request**
 Workflow State Field: `approval_status`
 
 | Current State | Action | Role     | Next State |
-|---------------|--------|----------|------------|
-| Pending       | Submit | Employee | Pending    |
+|---------------|--------|----------|------------|  
 | Pending       | Approve| HR Admin | Approved   |
 | Pending       | Reject | HR Admin | Rejected   |
 | Approved      | Cancel | HR Admin | Cancelled  |
 
-### Approval Flow
 
-```
-Employee → New Leave Request → Save → Submit
-                                         ↓
-                               approval_status = Pending
-                               docstatus = 1 (locked)
-                                         ↓
-                               HR Admin opens the request
-                               fills Rejection Reason (if rejecting)
-                                         ↓
-                          ┌──────────────┴──────────────┐
-                       Approve                        Reject
-                          ↓                              ↓
-               approval_status = Approved    approval_status = Rejected
-               approved_by = HR Employee     rejection_reason saved
-               annual_leave_balance deducted no balance change
-```
-
----
-
-## Controller Logic
-
-### Employee (`employee.py`)
-
-| Hook          | Logic                                                         |
-|---------------|---------------------------------------------------------------|
-| before_insert | Sets annual_leave_balance from Leave Configuration default    |
-| before_save   | Auto-generates full_name = first_name + " " + last_name       |
-| validate      | Age >= 18, joining not in future, email format, joining > DOB |
-
-### Leave Request (`leave_request.py`)
-
-| Hook                   | Logic                                                      |
-|------------------------|------------------------------------------------------------|
-| validate               | Date range, past date, day limits, balance, overlap check  |
-| on_submit              | Sets approval_status to Pending                            |
-| before_workflow_action | Approve: sets approved_by, deducts balance                 |
-|                        | Reject: validates rejection_reason is filled               |
-|                        | Cancel: restores balance if was Approved                   |
-| on_cancel              | Fallback balance restore outside workflow                  |
 
 ---
 
@@ -383,7 +342,6 @@ Employee → New Leave Request → Save → Submit
 
 **Chart:** Grouped bar chart — Total vs Active vs Inactive per department
 
-**Access:** HR Admin only
 
 ---
 
@@ -412,7 +370,7 @@ Open any Employee record → Print → Select "Employee ID Card"
    and one Employee record. They are linked by `employee_email = User.email`.
    The system does not support multiple User accounts per employee.
 
-2. **HR Admin must have an Employee record** — the `approved_by` field links
+2. **HR Admin should have it's own Employee record** — the `approved_by` field links
    to User. 
 
 3. **Leave balance is calendar-year based** — `annual_leave_balance` is a
@@ -420,32 +378,21 @@ Open any Employee record → Print → Select "Employee ID Card"
    or carry-forward logic in this version. Reset must be done manually or
    via a scheduled script.
 
-4. **Compensatory Leave has no cap** — the `max_compensatory_leave` is not
-   configured in Leave Configuration. Compensatory Leave requests are only
-   limited by the employee's overall `annual_leave_balance`.
 
-5. **Weekends and holidays are not excluded** — `total_days` is calculated
+4. **Weekends and holidays are not excluded** — `total_days` is calculated
    as a simple calendar day difference (`date_diff + 1`). Working day
    calendars and holiday lists are not factored in this version.
 
-6. **Designation must belong to a Department** — the client script filters
+5. **Designation must belong to a Department** — the client script filters
    the Designation Link field based on the selected Department. Designations
    without a linked Department will not appear in the dropdown.
 
-7. **Email sending is not configured** — the workflow has `send_email_alert`
-   disabled. Notifications to employees when their leave is approved or
-   rejected must be configured separately via Frappe's Email Notification
-   DocType if required.
 
-8. **Single site deployment assumed** — fixtures and asset paths are written
-   for a standard single-site bench setup. Multi-site configurations may
-   require path adjustments in `hooks.py`.
-
-9. **Frappe v16** — this app is developed and tested on Frappe v16. 
+6. **Frappe v16** — this app is developed and tested on Frappe v16. 
     Compatibility with earlier versions is not guaranteed due to
    use of `before_workflow_action` hook and `frappe.get_cached_doc`.
 
-10. **Leave Configuration must be saved once** — the Single DocType
+7. **Leave Configuration must be saved once** — the Single DocType
     `Leave Configuration` ships with default values in field definitions
     but must be opened and saved at least once after installation for
     `frappe.get_cached_doc` to return values correctly.
@@ -468,45 +415,4 @@ bench --site your-site-name build --app employee_hub
 bench restart
 ```
 
-### Folder Structure
-
-```
-employee_hub/
-├── employee_hub/
-│   ├── doctype/
-│   │   ├── employee/
-│   │   │   ├── employee.py
-│   │   │   ├── employee.js
-│   │   │   └── employee.json
-│   │   ├── leave_request/
-│   │   │   ├── leave_request.py
-│   │   │   ├── leave_request.js
-│   │   │   └── leave_request.json
-│   │   └── leave_configuration/
-│   │       ├── leave_configuration.py
-│   │       └── leave_configuration.json
-│   ├── report/
-│   │   └── department_wise_employee_summary/
-│   │       ├── department_wise_employee_summary.py
-│   │       ├── department_wise_employee_summary.js
-│   │       └── department_wise_employee_summary.json
-│   └── fixtures/
-│       ├── custom_field.json
-│       ├── property_setter.json
-│       ├── role.json
-│       ├── workflow.json
-│       ├── workflow_state.json
-│       ├── workflow_action_master.json
-│       ├── custom_doc_perm.json
-│       ├── report.json
-│       └── print_format.json
-├── public/
-│   ├── css/
-│   │   └── employee_hub.css
-│   └── js/
-│       └── employee_hub.js
-├── hooks.py
-├── setup.py
-└── README.md
-```
 
