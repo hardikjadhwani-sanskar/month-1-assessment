@@ -91,6 +91,7 @@
    "default": "Pending",
    "fieldname": "approval_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Approval Status",
    "options": "Pending\nApproved\nRejected",
    "read_only": 1
@@ -99,7 +100,7 @@
    "fieldname": "approved_by",
    "fieldtype": "Link",
    "label": "Approved By",
-   "options": "Employee",
+   "options": "User",
    "read_only": 1
   },
   {
@@ -132,7 +133,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-27 20:07:56.980776",
+ "modified": "2026-04-28 12:40:52.906943",
  "modified_by": "Administrator",
  "module": "Employee Hub",
  "name": "Leave Request",
