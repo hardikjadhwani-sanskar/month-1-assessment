@@ -12,7 +12,7 @@
   "impersonate": 0,
   "import": 0,
   "mask": 0,
-  "modified": "2026-04-28 11:12:51.404604",
+  "modified": "2026-04-29 16:27:02.706786",
   "name": "m2omqrkir2",
   "parent": "Employee",
   "permlevel": 0,
@@ -23,7 +23,7 @@
   "select": 0,
   "share": 0,
   "submit": 0,
-  "write": 0
+  "write": 1
  },
  {
   "amend": 0,
@@ -86,11 +86,11 @@
   "doctype": "Custom DocPerm",
   "email": 0,
   "export": 1,
-  "if_owner": 1,
+  "if_owner": 0,
   "impersonate": 0,
   "import": 0,
   "mask": 0,
-  "modified": "2026-04-28 13:58:50.116672",
+  "modified": "2026-04-29 16:29:53.332172",
   "name": "qshl5melpl",
   "parent": "Leave Request",
   "permlevel": 0,

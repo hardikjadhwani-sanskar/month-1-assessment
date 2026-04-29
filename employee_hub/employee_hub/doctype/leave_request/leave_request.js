@@ -6,32 +6,38 @@ frappe.ui.form.on("Leave Request", {
             _set_employee_from_session(frm);
         }
     },
-    // on approval status change check if rejected status is selected, then open rejection reason field
-    
-    approval_status(frm) {
-        if (frm.doc.approval_status === "Rejected") {
-            frm.set_value("rejection_reason", "");
-            frm.toggle_display("rejection_reason", true);
-            frm.set_df_property(
-                "rejection_reason",
-                "description",
-                "⚠ Please fill the reason for rejection."
-            );
-            frm.set_df_property("rejection_reason", "bold", 1);
-        } else {
-            frm.toggle_display("rejection_reason", false);
-            frm.set_df_property("rejection_reason", "description", "");
-            frm.set_df_property("rejection_reason", "bold", 0);
+       // ── Intercept workflow button clicks ──────────────────────────────────
+    // This fires BEFORE the workflow action is sent to server.
+    // Returning false cancels the action.
+    // Calling resolve() allows it to proceed.
+    before_workflow_action(frm) {
+        const action = frm.selected_workflow_action;
+
+        console.log("before_workflow_action | action:", action);
+
+        if (action === "Reject") {
+            // ✅ Unfreeze DOM before showing dialog
+            frappe.dom.unfreeze();
+
+            return new Promise((resolve, reject) => {
+                // ✅ setTimeout lets Frappe finish its internal
+                // DOM operations before dialog opens
+                setTimeout(() => {
+                    _showRejectionDialog(frm, resolve, reject);
+                }, 100);
+            });
         }
+
+        // Approve and Cancel — no dialog needed
+        return Promise.resolve();
     },
-    
 
     refresh(frm) {
         _setReadOnlyFields(frm);
         _updateTotalDaysLabel(frm);
         _lockEmployeeField(frm);
         _showStatusBanner(frm);
-        _handleRejectionReasonVisibility(frm);
+        // _handleRejectionReasonVisibility(frm);
         _showLeaveBalanceInfo(frm);
     },
 
@@ -52,6 +58,86 @@ frappe.ui.form.on("Leave Request", {
     },
 });
 
+// ── Rejection Dialog — calls our whitelisted method ───────────────────────
+
+function _showRejectionDialog(frm) {
+    frappe.dom.unfreeze();
+
+    const d = new frappe.ui.Dialog({
+        title               : __("Rejection Reason"),
+        fields              : [
+            {
+                fieldname  : "rejection_reason",
+                fieldtype  : "Small Text",
+                label      : __("Reason for Rejection"),
+                reqd       : 1,
+                description: __("This will be visible to the employee."),
+            }
+        ],
+        primary_action_label: __("Reject Leave"),
+        primary_action(values) {
+            const reason = values.rejection_reason;
+
+            if (!reason || !reason.trim()) {
+                frappe.msgprint({
+                    title    : __("Required"),
+                    message  : __("Please enter a rejection reason."),
+                    indicator: "red",
+                });
+                return;
+            }
+
+            d.hide();
+            frappe.dom.unfreeze();
+
+            // Show loading
+            frappe.show_alert({
+                message  : __("Rejecting leave request..."),
+                indicator: "orange",
+            });
+
+            // ✅ Call our whitelisted Python method
+            // which saves reason AND triggers transition
+            frappe.call({
+                method  : "employee_hub.employee_hub.doctype"
+                        + ".leave_request.leave_request"
+                        + ".reject_leave_request",
+                args    : {
+                    docname         : frm.doc.name,
+                    rejection_reason: reason,
+                },
+                callback(r) {
+                    if (r.exc) {
+                        frappe.msgprint({
+                            title    : __("Error"),
+                            message  : __("Could not reject leave request. Please try again."),
+                            indicator: "red",
+                        });
+                        return;
+                    }
+
+                    frappe.show_alert({
+                        message  : __("Leave request rejected successfully."),
+                        indicator: "red",
+                    });
+
+                    // Reload form to show updated state
+                    frm.reload_doc();
+                },
+            });
+        },
+        secondary_action_label: __("Cancel"),
+        secondary_action() {
+            d.hide();
+            frappe.dom.unfreeze();
+        },
+        onhide() {
+            frappe.dom.unfreeze();
+        },
+    });
+
+    d.show();
+}
 
 // ── Auto fill employee from session ───────────────────────────────────────
 

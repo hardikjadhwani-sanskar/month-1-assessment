@@ -178,6 +178,14 @@ class LeaveRequest(Document):
         # Set approval metadata
         self.db_set("approved_by",   approved_by_employee)
         self.db_set("approval_date", now_datetime())
+        
+        frappe.db.set_value(
+            "Employee",
+            self.employee,
+            "employee_status",
+            "On Leave"
+        )
+        frappe.db.commit()
 
         # Deduct leave balance
         self._adjust_leave_balance(multiplier=-1)
@@ -288,6 +296,7 @@ class LeaveRequest(Document):
             """,
             (new_balance, self.employee)
         )
+
         frappe.db.commit()
 
         frappe.logger().info(
@@ -295,3 +304,78 @@ class LeaveRequest(Document):
             f"employee={self.employee} | "
             f"{current_balance} → {new_balance}"
         )
+
+
+@frappe.whitelist()
+def reject_leave_request(docname, rejection_reason):
+    """
+    Saves rejection_reason and triggers the Reject
+    workflow transition in a single server call.
+    """
+    if not rejection_reason or not rejection_reason.strip():
+        frappe.throw("Rejection Reason is mandatory.")
+
+    # Only HR Admin can reject
+    if "HR Admin" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(
+            "Only HR Admins can reject leave requests.",
+            frappe.PermissionError
+        )
+
+    doc = frappe.get_doc("Leave Request", docname)
+
+    # Save rejection reason directly to DB
+    doc.rejection_reason = rejection_reason
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    # Now trigger the workflow transition
+    frappe.model.workflow.apply_workflow(doc, "Reject")
+    frappe.db.commit()
+
+    return {"status": "success", "message": "Leave request rejected."}
+
+
+def get_permission_query_conditions(user=None):
+    """
+    HR Admin  → sees all leave requests
+    Employee  → sees only leave requests where
+                employee field matches their Employee record
+    """
+    if not user:
+        user = frappe.session.user
+
+    if "HR Admin" in frappe.get_roles(user) or user == "Administrator":
+        return ""
+
+    # Get the Employee record linked to this user
+    employee = frappe.db.get_value(
+        "Employee",
+        {"employee_email": user},
+        "name"
+    )
+
+    if not employee:
+        # No employee record — show nothing
+        return "(`tabLeave Request`.`employee` = '__no_access__')"
+
+    return f"(`tabLeave Request`.`employee` = {frappe.db.escape(employee)})"
+
+
+def has_permission(doc, ptype="read", user=None):
+    """
+    Guards individual document access.
+    """
+    if not user:
+        user = frappe.session.user
+
+    if "HR Admin" in frappe.get_roles(user) or user == "Administrator":
+        return True
+
+    employee = frappe.db.get_value(
+        "Employee",
+        {"employee_email": user},
+        "name"
+    )
+
+    return doc.employee == employee

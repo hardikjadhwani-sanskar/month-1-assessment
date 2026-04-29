@@ -30,12 +30,21 @@ permission_query_conditions = {
         "employee_hub.employee_hub.doctype"
         ".employee.employee.get_permission_query_conditions"
     ),
+    "Leave Request": (
+        "employee_hub.employee_hub.doctype"
+        ".leave_request.leave_request.get_permission_query_conditions"
+    ),
 }
 
 has_permission = {
     "Employee": (
         "employee_hub.employee_hub.doctype"
         ".employee.employee.has_permission"
+    ),
+
+    "Leave Request": (
+        "employee_hub.employee_hub.doctype"
+        ".leave_request.leave_request.has_permission"
     ),
 }
 

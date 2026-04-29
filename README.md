@@ -121,7 +121,7 @@ Log in as Administrator and confirm the following are present:
 
 ---
 
-## Post-Install Setup (Required)
+## Configuration
 
 ### Step 1 — Create HR Admin User
 
@@ -165,7 +165,25 @@ For each employee repeat:
 2. Search → Employee → New
    employee_email : john@yourcompany.com   ← must match User email
    department, designation, etc.
+   
 ```
+### User Credentials - created for testing purposes
+
+```
+1. Administrator role 
+   id - Administrator
+   password - President@2014
+
+2. Employee role
+   id - karan@sanskar.io
+   password - sanskar
+
+3. HR Admin role
+   id - priya@sanskar.io
+   password- sanskar
+
+```
+
 
 ### Step 4 — Configure Leave Policy 
 
@@ -291,12 +309,13 @@ Adjust as per your company policy and Save.
 | Skill               | ✓    | ✓     | ✓      | ✓      | —      | —      |
 | Leave Configuration | ✓    | ✓     | ✓      | —      | —      | —      |
 
+
 ### Employee (role)
 
 | DocType       | Read     | Write    | Create   | Delete | Submit   | If Owner |
 |---------------|----------|----------|----------|--------|----------|----------|
 | Employee      | ✓        | —        | —        | —      | —        | -        |
-| Leave Request | ✓        | ✓        | ✓        | —      | ✓        | ✓        |
+| Leave Request | ✓        | ✓        | ✓        | —      | ✓        | -        |
 | Department    | ✓        | —        | —        | —      | —        | —        |
 | Designation   | ✓        | —        | —        | —      | —        | —        |
 | Skill         | ✓        | —        | —        | —      | —        | —        |
